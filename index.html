@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Suivi Stock Carburant 2026</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%230f1117'/><rect x='7' y='10' width='10' height='14' rx='2' fill='%2300d4ff'/><rect x='9' y='13' width='6' height='4' rx='1' fill='%230f1117'/><rect x='11' y='8' width='2' height='4' fill='%2300d4ff'/><rect x='11' y='6' width='6' height='3' rx='1' fill='%2300d4ff'/><rect x='17' y='6' width='2' height='5' fill='%2300d4ff'/><rect x='19' y='6' width='5' height='2' rx='1' fill='%2300d4ff'/><rect x='22' y='8' width='3' height='8' rx='1' fill='%2300d4ff'/><rect x='22' y='14' width='4' height='5' rx='2' fill='%23ff7043'/></svg>">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+:root {
+  --bg: #0f1117; --surface: #181c27; --surface2: #1e2435;
+  --border: rgba(255,255,255,0.07); --text: #f0f4ff; --muted: #6b7a99;
+  --cyan: #00d4ff; --orange: #ff7043; --purple: #7c6af7;
+  --green: #00c896; --yellow: #f5a623; --red: #ff4d6d;
+}
+body { font-family:'Inter',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; }
+
+/* HEADER */
+.header { padding:36px 48px 24px; border-bottom:1px solid var(--border); }
+.header-top { display:flex; justify-content:space-between; align-items:flex-start; }
+.header-title { font-size:40px; font-weight:900; line-height:1.1; letter-spacing:-0.02em; }
+.header-title em { font-style:italic; color:var(--cyan); }
+.header-meta { font-size:13px; color:var(--muted); margin-top:10px; display:flex; align-items:center; gap:12px; }
+.header-pill { background:var(--surface); border:1px solid var(--border); border-radius:20px; padding:5px 14px; font-size:12px; font-weight:600; color:var(--muted); }
+
+/* TABS */
+.nav { display:flex; gap:6px; padding:0 48px; border-bottom:1px solid var(--border); margin-top:20px; }
+.tab { display:flex; align-items:center; gap:7px; padding:10px 18px; border-radius:8px 8px 0 0; border:none; cursor:pointer; font-family:'Inter',sans-serif; font-size:13px; font-weight:600; color:var(--muted); background:transparent; border-bottom:2px solid transparent; transition:all 0.2s; margin-bottom:-1px; }
+.tab .ti { width:18px; height:18px; border-radius:4px; display:flex; align-items:center; justify-content:center; font-size:11px; background:var(--surface2); }
+.tab:hover { color:var(--text); }
+.tab.active { color:var(--text); background:var(--surface); border-bottom:2px solid var(--cyan); }
+.tab.active .ti { background:var(--cyan); }
+
+/* MAIN */
+.main { padding:28px 48px; }
+.section { display:none; }
+.section.active { display:block; }
+
+/* KPI ROW */
+.kpi-row { display:grid; grid-template-columns:repeat(5,1fr); gap:12px; margin-bottom:24px; }
+.kpi-card { background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:20px 22px; position:relative; overflow:hidden; }
+.kpi-card::after { content:''; position:absolute; bottom:0; left:0; right:0; height:3px; border-radius:0 0 14px 14px; }
+.kpi-card.cc::after{background:var(--cyan);} .kpi-card.co::after{background:var(--orange);}
+.kpi-card.cg::after{background:var(--green);} .kpi-card.cp::after{background:var(--purple);}
+.kpi-card.cy::after{background:var(--yellow);}
+.kpi-label { font-size:11px; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:0.06em; margin-bottom:10px; }
+.kpi-value { font-size:30px; font-weight:800; line-height:1; margin-bottom:7px; letter-spacing:-0.02em; }
+.kpi-card.cc .kpi-value{color:var(--cyan);} .kpi-card.co .kpi-value{color:var(--orange);}
+.kpi-card.cg .kpi-value{color:var(--green);} .kpi-card.cp .kpi-value{color:var(--purple);}
+.kpi-card.cy .kpi-value{color:var(--yellow);}
+.kpi-sub { font-size:12px; color:var(--muted); font-weight:500; }
+
+/* ALERT */
+.alert-banner { background:linear-gradient(135deg,rgba(0,212,255,0.06),rgba(0,212,255,0.02)); border:1px solid rgba(0,212,255,0.15); border-radius:12px; padding:15px 20px; margin-bottom:24px; display:flex; gap:12px; align-items:flex-start; font-size:13px; line-height:1.6; color:var(--muted); }
+.alert-banner b{color:var(--text);} .hl-c{color:var(--cyan);font-weight:700;} .hl-o{color:var(--orange);font-weight:700;} .hl-g{color:var(--green);font-weight:700;}
+
+/* CHARTS */
+.charts-row { display:grid; gap:12px; margin-bottom:12px; }
+.cr-3 { grid-template-columns:1.3fr 1fr 1fr; }
+.cr-2 { grid-template-columns:1fr 1fr; }
+.chart-card { background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:20px 22px; }
+.sec-title { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:var(--muted); margin-bottom:16px; display:flex; align-items:center; gap:8px; }
+.dot { width:7px; height:7px; border-radius:50%; flex-shrink:0; display:inline-block; }
+
+/* HBARS */
+.hbar-list { display:flex; flex-direction:column; gap:16px; }
+.hbar-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; }
+.hbar-label { font-size:12px; font-weight:600; color:var(--text); }
+.hbar-value { font-size:12px; font-weight:700; }
+.hbar-track { width:100%; height:5px; background:var(--surface2); border-radius:3px; overflow:hidden; }
+.hbar-fill { height:100%; border-radius:3px; }
+
+/* FILTERS */
+.filters-bar { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:12px 16px; display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:14px; }
+.sw { flex:1; min-width:180px; position:relative; }
+.sw span { position:absolute; left:10px; top:50%; transform:translateY(-50%); color:var(--muted); font-size:12px; pointer-events:none; }
+.sw input { width:100%; background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:8px 12px 8px 30px; color:var(--text); font-family:'Inter',sans-serif; font-size:13px; outline:none; }
+.sw input:focus { border-color:var(--cyan); }
+select.fs { background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:8px 12px; color:var(--text); font-family:'Inter',sans-serif; font-size:13px; outline:none; cursor:pointer; }
+select.fs:focus { border-color:var(--cyan); }
+.btn { padding:8px 16px; border-radius:8px; border:none; cursor:pointer; font-family:'Inter',sans-serif; font-size:13px; font-weight:600; display:flex; align-items:center; gap:6px; transition:all 0.15s; }
+.bp { background:var(--cyan); color:#000; } .bp:hover { opacity:0.85; }
+.bg { background:var(--surface2); color:var(--text); border:1px solid var(--border); } .bg:hover { border-color:var(--cyan); color:var(--cyan); }
+.be { background:rgba(0,200,150,0.1); color:var(--green); border:1px solid rgba(0,200,150,0.25); } .be:hover { background:rgba(0,200,150,0.18); }
+
+/* TABLE */
+.table-card { background:var(--surface); border:1px solid var(--border); border-radius:14px; overflow:hidden; }
+.table-top { padding:14px 18px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; }
+.tt-title { font-size:14px; font-weight:700; }
+.tt-count { font-size:12px; color:var(--muted); }
+.tbl-wrap { overflow-x:auto; }
+table { width:100%; border-collapse:collapse; font-size:13px; }
+thead th { padding:10px 13px; text-align:left; font-size:10px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:0.06em; border-bottom:1px solid var(--border); white-space:nowrap; cursor:pointer; user-select:none; background:var(--surface); }
+thead th:hover { color:var(--text); }
+thead th.sa::after{content:' ↑';color:var(--cyan);} thead th.sd::after{content:' ↓';color:var(--cyan);}
+tbody tr { border-bottom:1px solid rgba(255,255,255,0.04); transition:background 0.12s; }
+tbody tr:hover { background:var(--surface2); }
+tbody tr:last-child { border-bottom:none; }
+td { padding:11px 13px; vertical-align:middle; white-space:nowrap; }
+
+/* BADGES */
+.badge { display:inline-block; padding:3px 9px; border-radius:20px; font-size:11px; font-weight:600; }
+.bg-o { background:rgba(0,212,255,0.1); color:var(--cyan); border:1px solid rgba(0,212,255,0.2); }
+.bg-g { background:rgba(255,112,67,0.1); color:var(--orange); border:1px solid rgba(255,112,67,0.2); }
+.bg-a { background:rgba(124,106,247,0.1); color:var(--purple); border:1px solid rgba(124,106,247,0.2); }
+.bg-ok { background:rgba(0,200,150,0.1); color:var(--green); border:1px solid rgba(0,200,150,0.2); }
+.bg-w { background:rgba(245,166,35,0.1); color:var(--yellow); border:1px solid rgba(245,166,35,0.2); }
+.stag { display:inline-block; padding:2px 8px; border-radius:5px; font-size:11px; font-weight:700; letter-spacing:0.04em; text-transform:uppercase; }
+.sM{background:rgba(240,192,64,0.08);color:#d4a820;} .sB{background:rgba(224,64,251,0.08);color:#c030e0;}
+.sL{background:rgba(0,230,118,0.08);color:#00c060;} .sBY{background:rgba(0,176,255,0.08);color:#0090ee;}
+.dg{color:var(--green);font-size:11px;font-weight:600;} .dw{color:var(--yellow);font-size:11px;font-weight:600;} .db{color:var(--red);font-size:11px;font-weight:600;}
+
+/* ACTIONS */
+.ac { display:flex; gap:4px; }
+.ib { background:none; border:none; cursor:pointer; padding:4px 7px; border-radius:6px; font-size:13px; color:var(--muted); transition:all 0.15s; }
+.ib.ie:hover{background:rgba(0,212,255,0.08);color:var(--cyan);} .ib.id:hover{background:rgba(255,77,109,0.08);color:var(--red);}
+
+/* COMMENT CELL */
+.cmt { max-width:130px; overflow:hidden; text-overflow:ellipsis; color:var(--muted); font-size:12px; cursor:pointer; }
+.cmt:hover { color:var(--yellow); }
+
+/* SYNTHESE */
+.sg { display:grid; grid-template-columns:repeat(auto-fill,minmax(270px,1fr)); gap:12px; margin-bottom:12px; }
+.sc { background:var(--surface); border:1px solid var(--border); border-radius:14px; overflow:hidden; }
+.sh { padding:13px 18px; border-bottom:1px solid var(--border); font-size:12px; font-weight:700; display:flex; align-items:center; justify-content:space-between; }
+.sb { padding:8px 18px; }
+.sr { display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid rgba(255,255,255,0.04); font-size:13px; }
+.sr:last-child{border-bottom:none;} .sl{color:var(--muted);} .sv{font-weight:700;}
+.sf { padding:12px 18px; background:var(--surface2); display:flex; justify-content:space-between; font-size:13px; font-weight:700; }
+.pb{height:4px;background:var(--surface2);border-radius:2px;overflow:hidden;margin-top:4px;} .pf{height:100%;border-radius:2px;}
+
+/* MODAL */
+.mo { position:fixed; inset:0; background:rgba(0,0,0,0.65); backdrop-filter:blur(6px); display:flex; align-items:center; justify-content:center; z-index:1000; opacity:0; pointer-events:none; transition:opacity 0.2s; }
+.mo.open { opacity:1; pointer-events:all; }
+.md { background:var(--surface); border:1px solid var(--border); border-radius:18px; padding:28px 30px; width:540px; max-width:95vw; max-height:90vh; overflow-y:auto; transform:translateY(14px); transition:transform 0.2s; }
+.mo.open .md { transform:translateY(0); }
+.mt { font-size:18px; font-weight:800; margin-bottom:20px; }
+.fg { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:16px; }
+.ff { display:flex; flex-direction:column; gap:5px; }
+.ff.full { grid-column:span 2; }
+.fl { font-size:10px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:0.07em; }
+.fi,.fsel { background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:9px 12px; color:var(--text); font-family:'Inter',sans-serif; font-size:13px; outline:none; width:100%; transition:border-color 0.15s; }
+.fi:focus,.fsel:focus { border-color:var(--cyan); }
+textarea.fi { resize:vertical; min-height:68px; }
+.mf { display:flex; gap:10px; justify-content:flex-end; padding-top:16px; border-top:1px solid var(--border); }
+
+/* TOAST */
+.toast { position:fixed; bottom:24px; right:24px; background:var(--surface); border:1px solid var(--green); border-radius:10px; padding:12px 18px; font-size:13px; font-weight:600; color:var(--green); z-index:9999; transform:translateY(60px); opacity:0; transition:all 0.3s; display:flex; align-items:center; gap:8px; }
+.toast.show { transform:translateY(0); opacity:1; }
+
+.empty { text-align:center; padding:40px; color:var(--muted); font-size:13px; }
+
+/* PENDING CARDS */
+.pending-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:10px; }
+.pending-card {
+  background:var(--surface2); border:1px solid rgba(245,166,35,0.2); border-radius:10px;
+  padding:14px 16px; cursor:pointer; transition:all 0.18s;
+  border-left:3px solid var(--yellow);
+}
+.pending-card:hover { border-color:var(--yellow); background:rgba(245,166,35,0.06); transform:translateY(-1px); }
+.pending-card-top { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
+.pending-card-title { font-size:13px; font-weight:700; display:flex; align-items:center; gap:8px; }
+.pending-card-date { font-size:11px; color:var(--muted); }
+.pending-card-body { display:flex; gap:16px; font-size:12px; color:var(--muted); }
+.pending-card-body span b { color:var(--text); font-weight:600; }
+.pending-card-cmd { font-size:11px; color:var(--muted); margin-top:7px; font-family:monospace; }
+.pending-empty { color:var(--muted); font-size:13px; padding:8px 0; }
+::-webkit-scrollbar{width:5px;height:5px;} ::-webkit-scrollbar-thumb{background:var(--surface2);border-radius:3px;}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-top">
+    <div>
+      <div class="header-title">Suivi Stock <em>Carburant</em><br>2026</div>
+      <div class="header-meta">
+        <span>Tableau de bord — données 2026 · ⛽ Approvisionnements multi-sites</span>
+        <span class="header-pill" id="hdr-stat">— livraisons</span>
+      </div>
+    </div>
+    <button class="btn bp" onclick="openAdd()" style="align-self:flex-start;margin-top:4px">＋ Nouvelle Appro</button>
+  </div>
+  <div style="margin-top:10px;display:flex;align-items:center;gap:12px">
+    <span id="save-indicator" style="font-size:11px;color:var(--green);opacity:0;transition:opacity 0.4s;display:flex;align-items:center;gap:5px">
+      ✓ Sauvegarde automatique
+    </span>
+    <button onclick="resetAllData()" style="background:none;border:none;color:var(--muted);font-size:11px;cursor:pointer;font-family:Inter,sans-serif;opacity:0.5" title="Effacer toutes les données locales">⚠ Réinitialiser les données</button>
+  </div>
+</div>
+
+<div class="nav">
+  <button class="tab active" onclick="switchTab('dashboard',this)"><span class="ti">📊</span>Dashboard</button>
+  <button class="tab" onclick="switchTab('transactions',this)"><span class="ti">📋</span>Transactions</button>
+  <button class="tab" onclick="switchTab('synthese',this)"><span class="ti">📈</span>Synthèse</button>
+</div>
+
+<div class="main">
+
+<!-- DASHBOARD -->
+<div class="section active" id="tab-dashboard">
+  <div class="kpi-row" id="kpi-row"></div>
+  <div class="alert-banner" id="alert-bann"></div>
+
+  <!-- DEMANDES EN COURS -->
+  <div class="chart-card" style="margin-bottom:12px" id="pending-section">
+    <div class="sec-title" style="margin-bottom:12px">
+      <span class="dot" style="background:var(--yellow)"></span>
+      Demandes en cours
+      <span id="pending-count" style="background:rgba(245,166,35,0.15);color:var(--yellow);border:1px solid rgba(245,166,35,0.3);border-radius:20px;padding:2px 10px;font-size:11px;font-weight:700;margin-left:6px"></span>
+    </div>
+    <div id="pending-list"></div>
+  </div>
+
+  <div class="charts-row cr-3">
+    <div class="chart-card">
+      <div class="sec-title"><span class="dot" style="background:var(--cyan)"></span>Volumes livrés par mois (L)</div>
+      <canvas id="cv" height="200"></canvas>
+    </div>
+    <div class="chart-card">
+      <div class="sec-title"><span class="dot" style="background:var(--orange)"></span>Volume par site</div>
+      <div class="hbar-list" id="hb-sites"></div>
+    </div>
+    <div class="chart-card">
+      <div class="sec-title"><span class="dot" style="background:var(--purple)"></span>Volume par carburant</div>
+      <div class="hbar-list" id="hb-carbs"></div>
+    </div>
+  </div>
+  <div class="charts-row cr-2">
+    <div class="chart-card">
+      <div class="sec-title"><span class="dot" style="background:var(--green)"></span>Coûts par mois (€)</div>
+      <canvas id="cc" height="150"></canvas>
+    </div>
+    <div class="chart-card">
+      <div class="sec-title"><span class="dot" style="background:var(--yellow)"></span>Évolution prix GO & GNR (€/L)</div>
+      <canvas id="cp" height="150"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- TRANSACTIONS -->
+<div class="section" id="tab-transactions">
+  <div class="filters-bar">
+    <div class="sw"><span>🔍</span><input type="text" id="ss" placeholder="Rechercher CMD, RCM, site..." oninput="applyF()"></div>
+    <select class="fs" id="fsi" onchange="applyF()">
+      <option value="">Tous les sites</option>
+      <option>MERIGNAC</option><option>BARON</option><option>LA TESTE</option><option>BAYONNE</option>
+    </select>
+    <select class="fs" id="fca" onchange="applyF()">
+      <option value="">Tous carburants</option>
+      <option>GO</option><option>GNR</option><option>ADBLUE</option>
+    </select>
+    <select class="fs" id="fmo" onchange="applyF()">
+      <option value="">Tous les mois</option>
+      <option>janvier</option><option>février</option><option>mars</option>
+    </select>
+    <button class="btn be" onclick="exportCSV()">⬇ Export CSV</button>
+  </div>
+  <div class="table-card">
+    <div class="table-top">
+      <div><div class="tt-title">Registre des approvisionnements</div><div class="tt-count" id="tc">— lignes</div></div>
+    </div>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr>
+          <th onclick="srt('site')">Site</th><th onclick="srt('cuve')">Carburant</th>
+          <th onclick="srt('qte_cmd')">Qté Cmdée</th><th onclick="srt('qte_livree')">Qté Livrée</th>
+          <th onclick="srt('ecart')">Écart</th><th onclick="srt('prix')">€/L</th>
+          <th onclick="srt('date')">Date</th><th onclick="srt('cmd')">CMD</th>
+          <th onclick="srt('rcm')">RCM</th><th onclick="srt('alx')">ALX</th>
+          <th onclick="srt('mois')">Mois</th><th onclick="srt('cout')">Coût</th>
+          <th>Note</th><th></th>
+        </tr></thead>
+        <tbody id="tb"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- SYNTHESE -->
+<div class="section" id="tab-synthese">
+  <div class="sg" id="sy-sites"></div>
+  <div class="sg" id="sy-carbs"></div>
+</div>
+
+</div>
+
+<!-- MODAL ADD/EDIT -->
+<div class="mo" id="mo-main">
+  <div class="md">
+    <div class="mt" id="mo-ttl">⛽ Nouvelle livraison</div>
+    <div class="fg">
+      <div class="ff"><label class="fl">Site</label><select class="fsel" id="f-site"><option value="">— Sélectionner —</option><option>MERIGNAC</option><option>BARON</option><option>LA TESTE</option><option>BAYONNE</option></select></div>
+      <div class="ff"><label class="fl">Carburant</label><select class="fsel" id="f-cuve"><option value="">— Sélectionner —</option><option>GO</option><option>GNR</option><option>ADBLUE</option></select></div>
+      <div class="ff"><label class="fl">Qté Commandée (L)</label><input class="fi" id="f-qcmd" type="number" placeholder="ex: 5000"></div>
+      <div class="ff"><label class="fl">Qté Livrée (L) <span style="font-weight:400;opacity:0.5">— après livraison</span></label><input class="fi" id="f-qliv" type="number" placeholder="à renseigner après"></div>
+      <div class="ff"><label class="fl">Prix €/L</label><input class="fi" id="f-prix" type="number" step="0.0001" placeholder="ex: 1.3267"></div>
+      <div class="ff"><label class="fl">Date livraison <span style="font-weight:400;opacity:0.5">— après livraison</span></label><input class="fi" id="f-date" type="date"></div>
+      <div class="ff"><label class="fl">N° CMD</label><input class="fi" id="f-cmd" type="text" placeholder="HM00xxxx"></div>
+      <div class="ff"><label class="fl">N° Réception <span style="font-weight:400;opacity:0.5">— après livraison</span></label><input class="fi" id="f-rcm" type="text" placeholder="à renseigner après"></div>
+      <div class="ff"><label class="fl">Mois</label><select class="fsel" id="f-mois"><option>janvier</option><option>février</option><option>mars</option><option>avril</option><option>mai</option><option>juin</option><option>juillet</option><option>août</option><option>septembre</option><option>octobre</option><option>novembre</option><option>décembre</option></select></div>
+      <div class="ff"><label class="fl">Statut ALX</label><select class="fsel" id="f-alx"><option>EN ATTENTE</option><option>OK</option><option>KO</option></select></div>
+      <div class="ff full"><label class="fl">Commentaire</label><textarea class="fi" id="f-cmt" placeholder="Notes, observations..."></textarea></div>
+    </div>
+    <div class="mf">
+      <button class="btn bg" onclick="cmo('mo-main')">Annuler</button>
+      <button class="btn bp" onclick="saveE()">💾 Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL COMMENT -->
+<div class="mo" id="mo-cmt">
+  <div class="md" style="width:400px">
+    <div class="mt">💬 Commentaire</div>
+    <div class="ff"><label class="fl" id="cmt-lbl">Ligne</label><textarea class="fi" id="cmt-txt" rows="5" placeholder="Saisir un commentaire..."></textarea></div>
+    <div class="mf">
+      <button class="btn bg" onclick="cmo('mo-cmt')">Annuler</button>
+      <button class="btn bp" onclick="saveCmt()">💾 Sauvegarder</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast">✓ <span id="tmsg"></span></div>
+
+<script>
+let data=[
+  {id:1,site:'MERIGNAC',cuve:'ADBLUE',qte_cmd:1500,qte_livree:1501,prix:0.37,date:'2026-01-12',cmd:'HM002290',rcm:'HM002495',alx:'OK',mois:'janvier',cout:555.37,comment:''},
+  {id:2,site:'LA TESTE',cuve:'ADBLUE',qte_cmd:1000,qte_livree:1000,prix:0.37,date:'2026-01-14',cmd:'HM002291',rcm:'HM002498',alx:'OK',mois:'janvier',cout:370,comment:''},
+  {id:3,site:'MERIGNAC',cuve:'GNR',qte_cmd:3000,qte_livree:3000,prix:0.957,date:'2026-01-13',cmd:'HM002293',rcm:'HM002497',alx:'OK',mois:'janvier',cout:2871,comment:''},
+  {id:4,site:'MERIGNAC',cuve:'GO',qte_cmd:17000,qte_livree:16074,prix:1.3267,date:'2026-01-13',cmd:'HM002293',rcm:'HM002497',alx:'OK',mois:'janvier',cout:21325.38,comment:''},
+  {id:5,site:'BARON',cuve:'GO',qte_cmd:3000,qte_livree:2494,prix:1.3267,date:'2026-01-13',cmd:'HM002294',rcm:'HM002496',alx:'OK',mois:'janvier',cout:3308.79,comment:''},
+  {id:6,site:'BARON',cuve:'GNR',qte_cmd:1500,qte_livree:1500,prix:0.957,date:'2026-01-13',cmd:'HM002294',rcm:'HM002496',alx:'OK',mois:'janvier',cout:1435.5,comment:''},
+  {id:7,site:'LA TESTE',cuve:'GNR',qte_cmd:2000,qte_livree:1999,prix:0.957,date:'2026-01-14',cmd:'HM002295',rcm:'HM002500',alx:'OK',mois:'janvier',cout:1913.04,comment:''},
+  {id:8,site:'LA TESTE',cuve:'GO',qte_cmd:6000,qte_livree:5765,prix:1.3267,date:'2026-01-14',cmd:'HM002295',rcm:'HM002500',alx:'OK',mois:'janvier',cout:7648.43,comment:''},
+  {id:9,site:'BAYONNE',cuve:'GNR',qte_cmd:2000,qte_livree:2000,prix:1.005,date:'2026-01-14',cmd:'HM002296',rcm:'HM002499',alx:'OK',mois:'janvier',cout:2010,comment:''},
+  {id:10,site:'BAYONNE',cuve:'GO',qte_cmd:6000,qte_livree:6000,prix:1.375,date:'2026-01-14',cmd:'HM002296',rcm:'HM002499',alx:'OK',mois:'janvier',cout:8250,comment:''},
+  {id:11,site:'MERIGNAC',cuve:'GNR',qte_cmd:2500,qte_livree:2492,prix:0.989,date:'2026-01-27',cmd:'HM002297',rcm:'HM002503',alx:'OK',mois:'janvier',cout:2464.59,comment:''},
+  {id:12,site:'MERIGNAC',cuve:'GO',qte_cmd:16000,qte_livree:16012,prix:1.356,date:'2026-01-27',cmd:'HM002297',rcm:'HM002503',alx:'OK',mois:'janvier',cout:21712.27,comment:''},
+  {id:13,site:'BARON',cuve:'GO',qte_cmd:4500,qte_livree:3999,prix:1.356,date:'2026-01-27',cmd:'HM002298',rcm:'HM002502',alx:'OK',mois:'janvier',cout:5422.64,comment:''},
+  {id:14,site:'BARON',cuve:'GNR',qte_cmd:1000,qte_livree:1000,prix:0.989,date:'2026-01-27',cmd:'HM002298',rcm:'HM002502',alx:'OK',mois:'janvier',cout:989,comment:''},
+  {id:15,site:'LA TESTE',cuve:'GNR',qte_cmd:3500,qte_livree:3500,prix:0.989,date:'2026-01-27',cmd:'HM002299',rcm:'HM002501',alx:'OK',mois:'janvier',cout:3461.5,comment:''},
+  {id:16,site:'LA TESTE',cuve:'GO',qte_cmd:6000,qte_livree:5681,prix:1.356,date:'2026-01-27',cmd:'HM002299',rcm:'HM002501',alx:'OK',mois:'janvier',cout:7703.44,comment:''},
+  {id:17,site:'BAYONNE',cuve:'GNR',qte_cmd:2000,qte_livree:1994,prix:1.025,date:'2026-01-29',cmd:'HM002300',rcm:'HM002504',alx:'OK',mois:'janvier',cout:2043.85,comment:''},
+  {id:18,site:'BAYONNE',cuve:'GO',qte_cmd:6000,qte_livree:6005,prix:1.385,date:'2026-01-29',cmd:'HM002300',rcm:'HM002504',alx:'OK',mois:'janvier',cout:8316.93,comment:''},
+  {id:19,site:'MERIGNAC',cuve:'GNR',qte_cmd:17000,qte_livree:16064,prix:0.967,date:'2026-02-17',cmd:'F000589946',rcm:'OK',alx:'OK',mois:'février',cout:15533.89,comment:''},
+  {id:20,site:'MERIGNAC',cuve:'GO',qte_cmd:2500,qte_livree:2500,prix:1.332,date:'2026-02-17',cmd:'F000589946',rcm:'OK',alx:'OK',mois:'février',cout:3330,comment:''},
+  {id:21,site:'BARON',cuve:'GO',qte_cmd:4000,qte_livree:4000,prix:1.332,date:'2026-02-17',cmd:'HM002301',rcm:'HM002505',alx:'OK',mois:'février',cout:5328,comment:''},
+  {id:22,site:'BARON',cuve:'GNR',qte_cmd:1500,qte_livree:1500,prix:0.967,date:'2026-02-17',cmd:'HM002301',rcm:'HM002505',alx:'OK',mois:'février',cout:1450.5,comment:''},
+  {id:23,site:'LA TESTE',cuve:'GNR',qte_cmd:7000,qte_livree:6282,prix:0.77,date:'2026-02-13',cmd:'F000588124',rcm:'OK',alx:'OK',mois:'février',cout:4837.14,comment:''},
+  {id:24,site:'LA TESTE',cuve:'GO',qte_cmd:2500,qte_livree:2500,prix:1.344,date:'2026-02-13',cmd:'F000588124',rcm:'OK',alx:'OK',mois:'février',cout:3360,comment:''},
+  {id:25,site:'BAYONNE',cuve:'GNR',qte_cmd:2000,qte_livree:2265,prix:1.015,date:'2026-02-18',cmd:'HM002302',rcm:'HM002506',alx:'OK',mois:'février',cout:2298.98,comment:''},
+  {id:26,site:'BAYONNE',cuve:'GO',qte_cmd:5500,qte_livree:5502,prix:1.375,date:'2026-02-18',cmd:'HM002302',rcm:'HM002506',alx:'OK',mois:'février',cout:7565.25,comment:''},
+  {id:27,site:'MERIGNAC',cuve:'GNR',qte_cmd:2500,qte_livree:2500,prix:1.1714,date:'2026-03-03',cmd:'F000597055',rcm:'OK',alx:'OK',mois:'mars',cout:2928.5,comment:''},
+  {id:28,site:'MERIGNAC',cuve:'GO',qte_cmd:16000,qte_livree:16016,prix:1.5336,date:'2026-03-03',cmd:'F000597055',rcm:'OK',alx:'OK',mois:'mars',cout:24562.14,comment:''},
+  {id:29,site:'BARON',cuve:'GO',qte_cmd:3000,qte_livree:2983,prix:1.5336,date:'2026-03-03',cmd:'HM002303',rcm:'HM002507',alx:'OK',mois:'mars',cout:4574.73,comment:''},
+  {id:30,site:'BARON',cuve:'GNR',qte_cmd:2000,qte_livree:2000,prix:1.1714,date:'2026-03-03',cmd:'HM002303',rcm:'HM002507',alx:'OK',mois:'mars',cout:2342.8,comment:''},
+  {id:31,site:'LA TESTE',cuve:'GNR',qte_cmd:3000,qte_livree:3000,prix:1.1714,date:'2026-03-03',cmd:'F000597060',rcm:'OK',alx:'OK',mois:'mars',cout:3514.2,comment:''},
+  {id:32,site:'LA TESTE',cuve:'GO',qte_cmd:7000,qte_livree:6219,prix:1.5336,date:'2026-03-03',cmd:'F000597060',rcm:'OK',alx:'OK',mois:'mars',cout:9537.46,comment:''},
+  {id:33,site:'BAYONNE',cuve:'GNR',qte_cmd:2500,qte_livree:2501,prix:1.25,date:'2026-03-04',cmd:'HM002304',rcm:'HM002508',alx:'OK',mois:'mars',cout:3126.25,comment:''},
+  {id:34,site:'BAYONNE',cuve:'GO',qte_cmd:5500,qte_livree:5500,prix:1.62,date:'2026-03-04',cmd:'HM002304',rcm:'HM002508',alx:'OK',mois:'mars',cout:8910,comment:''}
+];
+let nid=35,sk='date',sd='asc',eid=null,cid=null,charts={};
+const MONTHS=['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
+
+// ── PERSISTANCE LOCALE ───────────────────────────────────────
+const STORAGE_KEY = 'carburant_2026_data';
+const STORAGE_NID = 'carburant_2026_nid';
+
+function saveToStorage() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    localStorage.setItem(STORAGE_NID, nid);
+    // Indicateur visuel discret
+    const ind = document.getElementById('save-indicator');
+    if(ind){ ind.style.opacity='1'; clearTimeout(ind._t); ind._t=setTimeout(()=>ind.style.opacity='0',1500); }
+  } catch(e){ console.warn('localStorage indisponible'); }
+}
+
+function loadFromStorage() {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    const savedNid = localStorage.getItem(STORAGE_NID);
+    if(saved) {
+      data = JSON.parse(saved);
+      if(savedNid) nid = parseInt(savedNid);
+    }
+  } catch(e){ console.warn('Erreur chargement localStorage'); }
+}
+
+// Charger les données sauvegardées (écrase les données initiales si présentes)
+loadFromStorage();
+const fN=(n,d=0)=>n==null?'—':Number(n).toLocaleString('fr-FR',{minimumFractionDigits:d,maximumFractionDigits:d});
+const fE=n=>n==null?'—':Number(n).toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2})+' €';
+const cbc=c=>c==='GO'?'bg-o':c==='GNR'?'bg-g':'bg-a';
+const cbcol=c=>c==='GO'?'var(--cyan)':c==='GNR'?'var(--orange)':'var(--purple)';
+const scol=s=>s==='MERIGNAC'?'#f0c040':s==='BARON'?'#e040fb':s==='LA TESTE'?'#00e676':'#00b0ff';
+const stag=s=>s==='MERIGNAC'?'sM':s==='BARON'?'sB':s==='LA TESTE'?'sL':'sBY';
+
+function dspan(r){
+  const d=(r.qte_livree||0)-(r.qte_cmd||0),p=r.qte_cmd>0?Math.abs(d)/r.qte_cmd*100:0,sg=d>=0?'+':'';
+  return `<span class="${p<1?'dg':p<5?'dw':'db'}">${sg}${fN(d)} L</span>`;
+}
+function toast(msg,err=false){const t=document.getElementById('toast');document.getElementById('tmsg').textContent=msg;t.style.borderColor=err?'var(--red)':'var(--green)';t.style.color=err?'var(--red)':'var(--green)';t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500);}
+
+function switchTab(n,el){document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));document.getElementById('tab-'+n).classList.add('active');el.classList.add('active');if(n==='synthese')renderSynthese();}
+
+function renderKPIs(){
+  const live=data.filter(r=>r.alx!=='EN ATTENTE');
+  const tL=live.reduce((a,r)=>a+(r.qte_livree||0),0),tC=live.reduce((a,r)=>a+(r.qte_cmd||0),0),tE=live.reduce((a,r)=>a+(r.cout||0),0);
+  const svc=tC>0?tL/tC*100:0,goL=live.filter(r=>r.cuve==='GO').reduce((a,r)=>a+(r.qte_livree||0),0),gnL=live.filter(r=>r.cuve==='GNR').reduce((a,r)=>a+(r.qte_livree||0),0);
+  document.getElementById('hdr-stat').textContent=`${data.length} appros · ${fN(tL)} L livrés`;
+  document.getElementById('kpi-row').innerHTML=[
+    {l:'Volume total livré',v:fN(tL)+' L',s:live.length+' livraisons confirmées',c:'cc'},
+    {l:'Coût total',v:fE(tE),s:fN(tC)+' L commandés',c:'co'},
+    {l:'Taux de service',v:svc.toFixed(1)+'%',s:'conformité livraisons/commandes',c:'cg'},
+    {l:'Volume GO',v:fN(goL)+' L',s:'gazole ordinaire',c:'cc'},
+    {l:'Volume GNR',v:fN(gnL)+' L',s:'gazole non routier',c:'cy'},
+  ].map(k=>`<div class="kpi-card ${k.c}"><div class="kpi-label">${k.l}</div><div class="kpi-value">${k.v}</div><div class="kpi-sub">${k.s}</div></div>`).join('');
+}
+
+function renderAlert(){
+  const live=data.filter(r=>r.alx!=='EN ATTENTE');
+  const tE=live.reduce((a,r)=>a+(r.cout||0),0);
+  const top=['MERIGNAC','BARON','LA TESTE','BAYONNE'].map(s=>({s,v:live.filter(r=>r.site===s).reduce((a,r)=>a+(r.qte_livree||0),0)})).sort((a,b)=>b.v-a.v)[0];
+  const pg=live.filter(r=>r.cuve==='GO').sort((a,b)=>new Date(b.date)-new Date(a.date));
+  const lg=pg[0],pv=pg[1];const pd=lg&&pv?((lg.prix-pv.prix)/pv.prix*100).toFixed(1):null;
+  let txt=`<b>Récapitulatif (livraisons confirmées) :</b> Coût total <span class="hl-o">${fE(tE)}</span> sur ${live.length} livraisons. Site le plus consommateur : <span class="hl-c">${top?top.s:'—'}</span> (${top?fN(top.v):0} L).`;
+  if(pd!==null){const s=pd>=0?'+':'';txt+=` Dernier prix GO : <span class="${pd>0?'hl-o':'hl-g'}">${lg.prix.toFixed(4)} €/L</span> (${s}${pd}% vs précédent).`;}
+  const pending=data.filter(r=>r.alx==='EN ATTENTE');
+  if(pending.length) txt+=` <span class="hl-o">⏳ ${pending.length} demande${pending.length>1?'s':''} en attente de livraison.</span>`;
+  document.getElementById('alert-bann').innerHTML=`<span style="font-size:18px;flex-shrink:0">ℹ️</span><span>${txt}</span>`;
+}
+
+function renderPending(){
+  const pending=data.filter(r=>r.alx==='EN ATTENTE').sort((a,b)=>new Date(b.mois?MONTHS.indexOf(b.mois):0)-new Date(a.mois?MONTHS.indexOf(a.mois):0));
+  const cnt=document.getElementById('pending-count');
+  const list=document.getElementById('pending-list');
+  const sec=document.getElementById('pending-section');
+  cnt.textContent=pending.length;
+  if(!pending.length){
+    sec.style.display='none';
+    return;
+  }
+  sec.style.display='block';
+  list.innerHTML=`<div class="pending-grid">${pending.map(r=>`
+    <div class="pending-card" onclick="openEdit(${r.id})" title="Cliquer pour compléter la livraison">
+      <div class="pending-card-top">
+        <div class="pending-card-title">
+          <span class="stag ${stag(r.site)}">${r.site||'—'}</span>
+          <span class="badge ${cbc(r.cuve)}">${r.cuve||'—'}</span>
+        </div>
+        <div class="pending-card-date">${r.mois||'—'}</div>
+      </div>
+      <div class="pending-card-body">
+        <span><b>${fN(r.qte_cmd)} L</b> commandés</span>
+        ${r.cout>0?`<span><b>${fE(r.cout)}</b></span>`:''}
+      </div>
+      <div class="pending-card-cmd">
+        CMD : ${r.cmd||'—'}${r.rcm?' · Réception : '+r.rcm:''}
+      </div>
+      <div style="margin-top:8px;font-size:11px;color:var(--yellow);opacity:0.8">✏️ Cliquer pour compléter la livraison</div>
+    </div>
+  `).join('')}</div>`;
+}
+
+const CO={responsive:true,plugins:{legend:{labels:{color:'#8a9bbf',font:{family:'Inter',size:11},boxWidth:12}}},scales:{x:{ticks:{color:'#6b7a99',font:{family:'Inter',size:11}},grid:{color:'rgba(255,255,255,0.05)'}},y:{ticks:{color:'#6b7a99',font:{family:'Inter',size:11}},grid:{color:'rgba(255,255,255,0.05)'}}}};
+function dc(id){if(charts[id]){charts[id].destroy();delete charts[id];}}
+
+function renderCharts(){
+  const live=data.filter(r=>r.alx!=='EN ATTENTE');
+  const months=[...new Set(live.map(r=>r.mois))].sort((a,b)=>MONTHS.indexOf(a)-MONTHS.indexOf(b));
+  // Volumes — barres EMPILÉES
+  dc('cv');charts['cv']=new Chart(document.getElementById('cv').getContext('2d'),{
+    type:'bar',
+    data:{labels:months,datasets:[
+      {label:'GO',   data:months.map(m=>live.filter(r=>r.mois===m&&r.cuve==='GO').reduce((a,r)=>a+r.qte_livree,0)),   backgroundColor:'rgba(0,212,255,0.75)', borderRadius:0},
+      {label:'GNR',  data:months.map(m=>live.filter(r=>r.mois===m&&r.cuve==='GNR').reduce((a,r)=>a+r.qte_livree,0)),  backgroundColor:'rgba(255,112,67,0.75)', borderRadius:0},
+      {label:'ADBLUE',data:months.map(m=>live.filter(r=>r.mois===m&&r.cuve==='ADBLUE').reduce((a,r)=>a+r.qte_livree,0)),backgroundColor:'rgba(124,106,247,0.75)',borderRadius:4},
+    ]},
+    options:{...CO,scales:{x:{...CO.scales.x,stacked:true},y:{...CO.scales.y,stacked:true}}}
+  });
+  const sites=['MERIGNAC','BARON','LA TESTE','BAYONNE'],mx=Math.max(...sites.map(s=>live.filter(r=>r.site===s).reduce((a,r)=>a+(r.qte_livree||0),0)));
+  document.getElementById('hb-sites').innerHTML=sites.map(s=>{const v=live.filter(r=>r.site===s).reduce((a,r)=>a+(r.qte_livree||0),0);return`<div><div class="hbar-header"><span class="hbar-label">${s}</span><span class="hbar-value" style="color:${scol(s)}">${fN(v)} L</span></div><div class="hbar-track"><div class="hbar-fill" style="width:${mx>0?v/mx*100:0}%;background:${scol(s)}"></div></div></div>`;}).join('');
+  const carbs=['GO','GNR','ADBLUE'],mxc=Math.max(...carbs.map(c=>live.filter(r=>r.cuve===c).reduce((a,r)=>a+(r.qte_livree||0),0)));
+  document.getElementById('hb-carbs').innerHTML=carbs.map(c=>{const v=live.filter(r=>r.cuve===c).reduce((a,r)=>a+(r.qte_livree||0),0),e=live.filter(r=>r.cuve===c).reduce((a,r)=>a+(r.cout||0),0);return`<div><div class="hbar-header"><span class="hbar-label">${c}</span><span class="hbar-value" style="color:${cbcol(c)}">${fN(v)} L · ${fE(e)}</span></div><div class="hbar-track"><div class="hbar-fill" style="width:${mxc>0?v/mxc*100:0}%;background:${cbcol(c)}"></div></div></div>`;}).join('');
+  // Coûts — ligne épaisse et visible
+  dc('cc');charts['cc']=new Chart(document.getElementById('cc').getContext('2d'),{type:'line',data:{labels:months,datasets:[{label:'Coût (€)',data:months.map(m=>live.filter(r=>r.mois===m).reduce((a,r)=>a+r.cout,0)),borderColor:'#00e8a8',borderWidth:3,backgroundColor:'rgba(0,200,150,0.1)',fill:true,tension:0.4,pointRadius:6,pointBackgroundColor:'#00e8a8',pointBorderColor:'#0f1117',pointBorderWidth:2}]},options:{...CO}});
+  // Prix — lignes épaisses et colorées
+  const gr=live.filter(r=>r.cuve==='GO').sort((a,b)=>new Date(a.date)-new Date(b.date)),nr=live.filter(r=>r.cuve==='GNR').sort((a,b)=>new Date(a.date)-new Date(b.date));
+  dc('cp');charts['cp']=new Chart(document.getElementById('cp').getContext('2d'),{type:'line',data:{labels:gr.map(r=>r.date.slice(5)),datasets:[
+    {label:'GO', data:gr.map(r=>r.prix), borderColor:'#00d4ff', borderWidth:3, tension:0.4, pointRadius:4, pointBackgroundColor:'#00d4ff', pointBorderColor:'#0f1117', pointBorderWidth:2, fill:false},
+    {label:'GNR',data:nr.map(r=>r.prix), borderColor:'#ff7043', borderWidth:3, tension:0.4, pointRadius:4, pointBackgroundColor:'#ff7043', pointBorderColor:'#0f1117', pointBorderWidth:2, fill:false},
+  ]},options:{...CO}});
+}
+
+function getFil(){
+  const q=(document.getElementById('ss').value||'').toLowerCase(),fS=document.getElementById('fsi').value,fC=document.getElementById('fca').value,fM=document.getElementById('fmo').value;
+  return data.filter(r=>{if(fS&&r.site!==fS)return false;if(fC&&r.cuve!==fC)return false;if(fM&&r.mois!==fM)return false;if(q){const h=[r.site,r.cuve,r.cmd,r.rcm,r.mois,r.comment||''].join(' ').toLowerCase();if(!h.includes(q))return false;}return true;}).sort((a,b)=>{let av=a[sk],bv=b[sk];if(sk==='ecart'){av=(a.qte_livree||0)-(a.qte_cmd||0);bv=(b.qte_livree||0)-(b.qte_cmd||0);}if(typeof av==='string')av=av.toLowerCase();if(typeof bv==='string')bv=bv.toLowerCase();return av<bv?(sd==='asc'?-1:1):av>bv?(sd==='asc'?1:-1):0;});
+}
+
+function renderTable(){
+  const rows=getFil();document.getElementById('tc').textContent=`${rows.length} ligne${rows.length>1?'s':''}`;
+  const tb=document.getElementById('tb');if(!rows.length){tb.innerHTML=`<tr><td colspan="14"><div class="empty">Aucune donnée pour ces critères</div></td></tr>`;return;}
+  tb.innerHTML=rows.map(r=>`<tr><td><span class="stag ${stag(r.site)}">${r.site}</span></td><td><span class="badge ${cbc(r.cuve)}">${r.cuve}</span></td><td>${fN(r.qte_cmd)}</td><td><b>${fN(r.qte_livree)}</b></td><td>${dspan(r)}</td><td>${r.prix?r.prix.toFixed(4):'—'}</td><td style="color:var(--muted);font-size:12px">${r.date||'—'}</td><td style="color:var(--muted);font-size:11px">${r.cmd||'—'}</td><td style="color:var(--muted);font-size:11px">${r.rcm||'—'}</td><td><span class="badge ${r.alx==='OK'?'bg-ok':'bg-w'}">${r.alx||'—'}</span></td><td style="color:var(--muted);font-size:12px">${r.mois||'—'}</td><td><b>${fE(r.cout)}</b></td><td class="cmt" onclick="openCmt(${r.id})">${r.comment?'💬 '+r.comment.substring(0,20)+(r.comment.length>20?'…':''):'<span style="color:var(--muted);font-size:11px">+ note</span>'}</td><td><div class="ac"><button class="ib ie" onclick="openEdit(${r.id})">✏️</button><button class="ib id" onclick="delR(${r.id})">🗑</button></div></td></tr>`).join('');
+}
+
+function applyF(){renderTable();}
+function resetF(){['ss'].forEach(i=>document.getElementById(i).value='');['fsi','fca','fmo'].forEach(i=>document.getElementById(i).value='');renderTable();}
+function srt(k){if(sk===k)sd=sd==='asc'?'desc':'asc';else{sk=k;sd='asc';}document.querySelectorAll('thead th').forEach(t=>{t.classList.remove('sa','sd');if(t.getAttribute('onclick')===`srt('${k}')`)t.classList.add(sd==='asc'?'sa':'sd');});renderTable();}
+function delR(id){if(!confirm('Supprimer cette livraison ?'))return;data=data.filter(r=>r.id!==id);saveToStorage();renderAll();toast('Livraison supprimée');}
+
+function openAdd(){eid=null;document.getElementById('mo-ttl').textContent='⛽ Nouvelle livraison';clearF();document.getElementById('mo-main').classList.add('open');}
+function openEdit(id){eid=id;const r=data.find(d=>d.id===id);if(!r)return;document.getElementById('mo-ttl').textContent='✏️ Modifier #'+id;document.getElementById('f-site').value=r.site;document.getElementById('f-cuve').value=r.cuve;document.getElementById('f-qcmd').value=r.qte_cmd;document.getElementById('f-qliv').value=r.qte_livree;document.getElementById('f-prix').value=r.prix;document.getElementById('f-date').value=r.date;document.getElementById('f-cmd').value=r.cmd;document.getElementById('f-rcm').value=r.rcm;document.getElementById('f-mois').value=r.mois;document.getElementById('f-alx').value=r.alx;document.getElementById('f-cmt').value=r.comment||'';document.getElementById('mo-main').classList.add('open');}
+function cmo(id){document.getElementById(id).classList.remove('open');}
+function clearF(){
+  ['f-qcmd','f-qliv','f-prix','f-date','f-cmd','f-rcm','f-cmt'].forEach(i=>document.getElementById(i).value='');
+  document.getElementById('f-site').value='';
+  document.getElementById('f-cuve').value='';
+  document.getElementById('f-alx').value='EN ATTENTE';
+  const curMonth=MONTHS[new Date().getMonth()];
+  const mSel=document.getElementById('f-mois');
+  mSel.value=[...mSel.options].some(o=>o.value===curMonth)?curMonth:'';
+}
+
+function saveE(){
+  const site=document.getElementById('f-site').value,cuve=document.getElementById('f-cuve').value;
+  const qte_cmd=parseFloat(document.getElementById('f-qcmd').value)||0,qte_livree=parseFloat(document.getElementById('f-qliv').value)||0;
+  const prix=parseFloat(document.getElementById('f-prix').value)||0,date=document.getElementById('f-date').value;
+  const cmd=document.getElementById('f-cmd').value,rcm=document.getElementById('f-rcm').value;
+  const mois=document.getElementById('f-mois').value,alx=document.getElementById('f-alx').value,comment=document.getElementById('f-cmt').value;
+  const cout=prix&&qte_livree?+(prix*qte_livree).toFixed(2):0;
+  if(eid){const i=data.findIndex(r=>r.id===eid);if(i>-1)data[i]={...data[i],site,cuve,qte_cmd,qte_livree,prix,date,cmd,rcm,mois,alx,comment,cout};toast('Livraison mise à jour ✓');}
+  else{data.push({id:nid++,site,cuve,qte_cmd,qte_livree,prix,date,cmd,rcm,mois,alx,comment,cout});toast('Appro ajoutée ✓');}
+  saveToStorage();cmo('mo-main');renderAll();
+}
+
+function openCmt(id){cid=id;const r=data.find(d=>d.id===id);document.getElementById('cmt-lbl').textContent=`Ligne #${id} — ${r?r.site+' '+r.cuve:''}`;document.getElementById('cmt-txt').value=r?r.comment||'':'';document.getElementById('mo-cmt').classList.add('open');}
+function saveCmt(){if(cid===null)return;const r=data.find(d=>d.id===cid);if(r)r.comment=document.getElementById('cmt-txt').value;saveToStorage();cmo('mo-cmt');renderTable();toast('Commentaire sauvegardé');}
+
+function renderSynthese(){
+  const sites=['MERIGNAC','BARON','LA TESTE','BAYONNE'],carbs=['GO','GNR','ADBLUE'],tV=data.reduce((a,r)=>a+(r.qte_livree||0),0);
+  document.getElementById('sy-sites').innerHTML=sites.map(s=>{const rows=data.filter(r=>r.site===s),v=rows.reduce((a,r)=>a+(r.qte_livree||0),0),e=rows.reduce((a,r)=>a+(r.cout||0),0),pct=tV>0?v/tV*100:0;return`<div class="sc"><div class="sh"><span class="stag ${stag(s)}">${s}</span><span style="color:var(--muted);font-weight:500">${rows.length} livraisons</span></div><div class="sb">${carbs.map(c=>{const cv=rows.filter(r=>r.cuve===c).reduce((a,r)=>a+(r.qte_livree||0),0),ce=rows.filter(r=>r.cuve===c).reduce((a,r)=>a+(r.cout||0),0);return cv>0?`<div class="sr"><span class="sl"><span class="badge ${cbc(c)}">${c}</span></span><span class="sv">${fN(cv)} L — ${fE(ce)}</span></div>`:''}).join('')}<div style="padding-top:10px"><div style="font-size:11px;color:var(--muted);margin-bottom:5px">${pct.toFixed(1)}% du volume total</div><div class="pb"><div class="pf" style="width:${pct}%;background:${scol(s)}"></div></div></div></div><div class="sf"><span>TOTAL</span><span style="color:${scol(s)}">${fN(v)} L — ${fE(e)}</span></div></div>`;}).join('');
+  document.getElementById('sy-carbs').innerHTML=carbs.map(c=>{const rows=data.filter(r=>r.cuve===c);if(!rows.length)return'';const v=rows.reduce((a,r)=>a+(r.qte_livree||0),0),e=rows.reduce((a,r)=>a+(r.cout||0),0),pmn=Math.min(...rows.map(r=>r.prix)).toFixed(4),pmx=Math.max(...rows.map(r=>r.prix)).toFixed(4);return`<div class="sc"><div class="sh"><span class="badge ${cbc(c)}">${c}</span><span style="color:var(--muted);font-weight:500">${rows.length} livraisons</span></div><div class="sb">${sites.map(s=>{const sv=rows.filter(r=>r.site===s).reduce((a,r)=>a+(r.qte_livree||0),0);return sv>0?`<div class="sr"><span class="sl"><span class="stag ${stag(s)}">${s}</span></span><span class="sv">${fN(sv)} L</span></div>`:''}).join('')}<div class="sr"><span class="sl">Fourchette prix</span><span class="sv">${pmn} → ${pmx} €/L</span></div></div><div class="sf"><span>TOTAL</span><span style="color:${cbcol(c)}">${fN(v)} L — ${fE(e)}</span></div></div>`;}).join('');
+}
+
+function exportCSV(){const rows=getFil(),h=['ID','Site','Cuve','Qté Cmd','Qté Livrée','Prix €/L','Date','CMD','RCM','ALX','Mois','Coût €','Commentaire'],b=rows.map(r=>[r.id,r.site,r.cuve,r.qte_cmd,r.qte_livree,r.prix,r.date,r.cmd,r.rcm,r.alx,r.mois,r.cout,(r.comment||'').replace(/;/g,' ')].join(';'));const bl=new Blob(['\uFEFF'+[h.join(';'),...b].join('\n')],{type:'text/csv;charset=utf-8'});const a=document.createElement('a');a.href=URL.createObjectURL(bl);a.download='carburant_2026.csv';a.click();toast('Export CSV généré');}
+
+function resetAllData(){
+  if(!confirm('⚠ Effacer toutes les données locales et revenir aux données initiales ?'))return;
+  localStorage.removeItem(STORAGE_KEY);
+  localStorage.removeItem(STORAGE_NID);
+  location.reload();
+}
+
+['mo-main','mo-cmt'].forEach(id=>document.getElementById(id).addEventListener('click',function(e){if(e.target===this)cmo(id);}));
+
+function renderAll(){renderKPIs();renderAlert();renderPending();renderCharts();renderTable();}
+renderAll();
+</script>
+</body>
+</html>
